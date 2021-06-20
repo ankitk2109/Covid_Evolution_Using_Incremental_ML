@@ -128,6 +128,25 @@ def plot_top_countries(df_top_countries, num_country_plot):
     plt.show()
 
 
+# Average cases of top countries
+def avg_cases_top_countries(df_top_countries, total_countries):
+    dict_countries_avg = Counter(total_countries)
+
+    for country in df_top_countries.index.tolist():  # loop through the list of top countries
+        dict_countries_avg[country] = df_grouped.get_group(country)['cases'].mean()
+
+    # Average cases for all countries
+    df_avg_cases_countries = pd.DataFrame.from_dict(dict_countries_avg, orient='index', columns=['Average'])
+
+    # List of top selected countries
+    top_countries = list(df_top_countries.index)
+
+    # Average of selected top countries
+    avg_df = df_avg_cases_countries[df_avg_cases_countries.index.isin(top_countries)]
+
+    return avg_df
+
+
 # Load all global variables from YAML file
 yaml_file_path = "vars.yaml"
 with open(yaml_file_path, 'r') as yaml_file:
@@ -145,7 +164,7 @@ num_country_plot = parsed_yaml_file['num_country_plot']
 decimal = parsed_yaml_file['decimal']  # Specify the scale of decimal places
 bar_plot_path = parsed_yaml_file['paths']['bar_plot_path']
 
-# Load dataframe and group countries
+# read data, group countries and count countries
 df = pd.read_csv(path)
 total_countries = df['countriesAndTerritories'].unique()
 df_grouped = df.groupby('countriesAndTerritories')
@@ -163,9 +182,14 @@ df_top_countries = top_selected_countries(number_of_countries)
 # plot top countries
 plot_top_countries(df_top_countries, num_country_plot)
 
-# Add valid and total countries to yaml file
+# Average cases of top countries
+avg_df = avg_cases_top_countries(df_top_countries, total_countries)  # Not saving these details anywhere
+
+# Update yaml file parser
 parsed_yaml_file['valid_countries'] = valid_countries
 parsed_yaml_file['total_countries'] = total_countries.tolist()
+
+# Dump data to yaml file
 with open(yaml_file_path, 'w') as yaml_file:
     yaml.dump(parsed_yaml_file, yaml_file, default_flow_style=False)
 
