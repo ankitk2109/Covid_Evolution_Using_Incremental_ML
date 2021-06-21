@@ -26,6 +26,7 @@ from skmultiflow.trees import HoeffdingAdaptiveTreeRegressor
 # Imports for incremental learner
 from skmultiflow.trees import HoeffdingTreeRegressor
 
+
 # Load all global variables from YAML file
 yaml_file_path = "vars.yaml"
 with open(yaml_file_path, 'r') as yaml_file:
@@ -593,6 +594,7 @@ def instantiate_regressors():
     return model, model_names
 
 
+'''
 def get_error_scores_per_model(evaluator, mdl_evaluation_scores) -> pd.DataFrame:
     for i in range(len(evaluator.model_names)):
         # Desired error metrics
@@ -605,6 +607,22 @@ def get_error_scores_per_model(evaluator, mdl_evaluation_scores) -> pd.DataFrame
         mdl_evaluation_scores[str(evaluator.model_names[i])] = [rmse, mae, mape]
 
     return (pd.DataFrame(mdl_evaluation_scores))
+'''
+
+
+def get_error_scores_per_model(evaluator, mdl_evaluation_scores, inc_alt_batches=False) -> pd.DataFrame:
+    for i in range(len(evaluator.model_names)):
+        # Desired error metrics
+        mse = evaluator.mean_eval_measurements[i].get_mean_square_error()
+        mae = evaluator.mean_eval_measurements[i].get_average_error()
+        if not inc_alt_batches:
+            mae = mae[0]  # get_average_error() is returning a List instead of single value.
+        mape = evaluator.mean_eval_measurements[i].get_mean_absolute_percentage_error()
+        rmse = sqrt(mse)
+
+        # Dictionary of errors per model
+        mdl_evaluation_scores[str(evaluator.model_names[i])] = [rmse, mae, mape]
+    return pd.DataFrame(mdl_evaluation_scores)
 
 
 def get_running_time_per_model_incremental_learner(evaluator,day):
@@ -616,6 +634,28 @@ def get_running_time_per_model_incremental_learner(evaluator,day):
         running_time.append(evaluator.running_time_measurements[i]._total_time)
 
     return pd.DataFrame([running_time], columns=cols)  # Passing running_time as a list of list to insert it as a row
+
+
+def reset_evaluator(evaluator):
+    for j in range(evaluator.n_models):
+        evaluator.mean_eval_measurements[j].reset()
+        evaluator.current_eval_measurements[j].reset()
+    return evaluator
+
+
+def update_incremental_metrics(evaluator, y, prediction):  # Added Now
+    for j in range(evaluator.n_models):
+        for i in range(len(prediction[0])):
+            evaluator.mean_eval_measurements[j].add_result(y[i], prediction[j][i])
+            evaluator.current_eval_measurements[j].add_result(y[i], prediction[j][i])
+
+        # Adding result manually causes y_true_vector to have a objects inserted like array([123.45]) in a list.
+        # For calculating metrics we have to convert them into flat list.
+        evaluator.mean_eval_measurements[j].y_true_vector = np.array(
+            evaluator.mean_eval_measurements[j].y_true_vector).flatten().tolist()
+        evaluator.current_eval_measurements[j].y_true_vector = np.array(
+            evaluator.current_eval_measurements[j].y_true_vector).flatten().tolist()
+    return evaluator
 
 
 # STATIC LEARNER
