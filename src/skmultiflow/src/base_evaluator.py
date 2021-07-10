@@ -7,12 +7,23 @@ from skmultiflow.core import BaseSKMObject
 from skmultiflow.data.base_stream import Stream
 from .evaluation_data_buffer import EvaluationDataBuffer
 from skmultiflow.visualization.evaluation_visualizer import EvaluationVisualizer
-from src._classification_performance_evaluator import ClassificationPerformanceEvaluator, WindowClassificationPerformanceEvaluator, \
+from src.skmultiflow.src._classification_performance_evaluator import ClassificationPerformanceEvaluator, WindowClassificationPerformanceEvaluator, \
     MultiLabelClassificationPerformanceEvaluator, WindowMultiLabelClassificationPerformanceEvaluator
-from src.measure_collection import RegressionMeasurements, WindowRegressionMeasurements,\
+
+from src.skmultiflow.src.measure_collection import RegressionMeasurements, WindowRegressionMeasurements,\
     MultiTargetRegressionMeasurements, WindowMultiTargetRegressionMeasurements,\
     RunningTimeMeasurements
-from src import constants
+
+
+# from src._classification_performance_evaluator import ClassificationPerformanceEvaluator, WindowClassificationPerformanceEvaluator, \
+#     MultiLabelClassificationPerformanceEvaluator, WindowMultiLabelClassificationPerformanceEvaluator
+#
+# from src.measure_collection import RegressionMeasurements, WindowRegressionMeasurements,\
+#     MultiTargetRegressionMeasurements, WindowMultiTargetRegressionMeasurements,\
+#     RunningTimeMeasurements
+# from src import constants
+
+from src.skmultiflow.src import constants
 from skmultiflow.utils import calculate_object_size
 
 # from skmultiflow.metrics import ClassificationPerformanceEvaluator, WindowClassificationPerformanceEvaluator, \

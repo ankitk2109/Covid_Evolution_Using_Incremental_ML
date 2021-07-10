@@ -5,8 +5,8 @@ from sklearn.svm import LinearSVR
 from sklearn.tree import DecisionTreeRegressor
 from skmultiflow.data import DataStream
 
-from src.helper import *
-from src.src.evaluate_prequential import EvaluatePrequential
+from src.utils import *
+from src.skmultiflow.src.evaluate_prequential import EvaluatePrequential
 
 
 def scikit_multiflow(df, pretrain_days, country):  # Added Country in parameter
@@ -272,7 +272,8 @@ def start_static_learning():
 
 
 # YAML FILE
-yaml_file_path = "vars.yaml"
+# yaml_file_path = "vars.yaml"
+yaml_file_path = "../config.yaml"
 with open(yaml_file_path, 'r') as yaml_file:
     # yaml_file = open(yaml_file_path)
     parsed_yaml_file = yaml.load(yaml_file, Loader=yaml.FullLoader)

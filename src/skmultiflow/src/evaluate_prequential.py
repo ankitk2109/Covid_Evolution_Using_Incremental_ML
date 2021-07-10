@@ -5,8 +5,11 @@ from timeit import default_timer as timer
 
 from numpy import unique
 
-from src.base_evaluator import StreamEvaluator
-from src import constants
+# from src.base_evaluator import StreamEvaluator
+# from src import constants
+
+from src.skmultiflow.src.base_evaluator import StreamEvaluator
+from src.skmultiflow.src import constants
 
 
 class EvaluatePrequential(StreamEvaluator):

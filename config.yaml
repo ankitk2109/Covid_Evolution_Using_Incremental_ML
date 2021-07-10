@@ -23,12 +23,6 @@ paths:
   exp2_summary_path: ../results/running_results/content/Result/exp2/summary
 pretrain_days:
 - 30
-- 60
-- 90
-- 120
-- 150
-- 180
-- 210
 - 240
 total_countries:
 - Afghanistan
@@ -246,53 +240,6 @@ total_countries:
 - Zambia
 - Zimbabwe
 valid_countries:
-- Algeria
-- Australia
-- Austria
-- Bahrain
-- Belgium
-- Brazil
-- Canada
-- China
-- Croatia
-- Czechia
-- Denmark
-- Ecuador
-- Egypt
-- Estonia
-- Finland
-- France
-- Georgia
-- Germany
-- Greece
-- Iceland
 - India
-- Iran
-- Iraq
-- Ireland
-- Israel
-- Italy
-- Japan
-- Kuwait
-- Lebanon
-- Malaysia
-- Mexico
-- Netherlands
-- Norway
-- Oman
-- Pakistan
-- Philippines
-- Qatar
-- Romania
-- Russia
-- San_Marino
-- Singapore
-- South_Korea
-- Spain
-- Sweden
-- Switzerland
-- Taiwan
-- United_Arab_Emirates
-- United_Kingdom
 - United_States_of_America
-- Vietnam
+

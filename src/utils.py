@@ -28,7 +28,8 @@ from skmultiflow.trees import HoeffdingTreeRegressor
 
 
 # Load all global variables from YAML file
-yaml_file_path = "vars.yaml"
+# yaml_file_path = "vars.yaml"
+yaml_file_path = "../config.yaml"
 with open(yaml_file_path, 'r') as yaml_file:
     # yaml_file = open(yaml_file_path)
     parsed_yaml_file = yaml.load(yaml_file, Loader=yaml.FullLoader)
