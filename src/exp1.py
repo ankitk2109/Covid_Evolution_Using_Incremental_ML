@@ -298,8 +298,7 @@ start_inc_learning()
 # STATIC LEARNER
 results_static = []
 results_runtime_static = []
-max_of_pretrain_per_country = []
-max_cases_per_country = []
+max_cases_per_country, max_of_pretrain_per_country = reset(max_cases_per_country,max_of_pretrain_per_country)
 start_static_learning()
 
 # TODO: Significance test for exp1

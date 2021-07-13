@@ -776,3 +776,11 @@ def get_validation_set(df_train, batch_size=10):
         val_set.append(df_train[df_train['country'] == country].iloc[-batch_size:])
     return pd.concat(train_set, ignore_index=True), pd.concat(val_set, ignore_index=True)
 
+
+def reset(*args):
+    """
+    Reset all arguments to empty list
+    """
+    if len(args)>0:
+        empty_lists = [[]]*len(args)
+    return empty_lists
