@@ -12,15 +12,15 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 
 # Create lags
-def create_features_with_lags(df_2):
-    for i in range(89, 0,
+def create_features_with_lags(df_2, lag_days):
+    for i in range(lag_days, 0,
                    -1):  # Loop in reverse order for creating ordered lags eg: cases_t-10, cases_t-9... cases_t-1. t=current cases
         df_2[f'cases_t-{i}'] = df_2['cases'].shift(i, axis=0)
     return df_2
 
 
 # Preprocess data
-def preprocess_data(df_grouped, total_countries):
+def preprocess_data(df_grouped, total_countries, lag_days):
     for country in total_countries:
         # process only if file does not exist already
         filepath = os.path.join(csv_processed_path, f'{country}.csv')
@@ -46,7 +46,7 @@ def preprocess_data(df_grouped, total_countries):
             df_1 = df_1[['day_no', 'country', 'cases']]
 
             # Adding features through lags
-            df_1 = create_features_with_lags(df_1)
+            df_1 = create_features_with_lags(df_1, lag_days)
 
             # Creating target with last 10 days cases
             df_1['target'] = df_1.iloc[:, [2] + [i * -1 for i in range(1, 10)]].mean(axis=1)
@@ -164,6 +164,7 @@ number_of_countries = parsed_yaml_file['number_of_countries']
 num_country_plot = parsed_yaml_file['num_country_plot']
 decimal = parsed_yaml_file['decimal']  # Specify the scale of decimal places
 bar_plot_path = parsed_yaml_file['paths']['bar_plot_path']
+lag_days = int(parsed_yaml_file['lag_days'])
 
 # read data, group countries and count countries
 df = pd.read_csv(path)
@@ -172,7 +173,7 @@ df_grouped = df.groupby('countriesAndTerritories')
 valid_countries = []
 
 # Preprocess data
-preprocess_data(df_grouped, total_countries)
+preprocess_data(df_grouped, total_countries, lag_days)
 
 # get valid countries
 valid_countries = get_valid_countries(valid_countries, csv_processed_path)

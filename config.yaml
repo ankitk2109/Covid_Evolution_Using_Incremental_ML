@@ -21,6 +21,7 @@ paths:
   exp2_runtime_path: ../results/running_results/content/Result/exp2/runtime
   exp2_static_united_df_path: ../results/running_results/content/Result/exp2/united_dataframe/static
   exp2_summary_path: ../results/running_results/content/Result/exp2/summary
+lag_days: 89
 pretrain_days:
 - 30
 - 60
