@@ -43,6 +43,9 @@ valid_countries = parsed_yaml_file['valid_countries']
 
 # Return a combined dataframe for a each error statistics(MAE,RMSE,MAPE etc) along with the newly added mean row.
 def get_metric_with_mean(result: pd.DataFrame, error_metric: str) -> pd.DataFrame:
+    """
+    This method calculates mean of the EvaluationMeasurement column for specified error metric (MAPE/RMSE/MAE)
+    """
     df_grouped = result.groupby('EvaluationMeasurement')
     df = df_grouped.get_group(error_metric).reset_index(drop=True)
     df = df.append(df.describe().loc['mean'])
@@ -62,8 +65,11 @@ def calc_mean_to_max_error(df, max_of_pretrain_days, max_of_df):
     return df
 
 
-# Note: Do not change the filenames, since they are later being used for visualizations
 def save_runtime(df, path, country=None, static_learner=True, alternate_batch=False, transpose=False):
+    # Note: Do not change the filenames, since they are later being used for visualizations
+    """
+    This method is used to save the runtime of static and incremental models for exp1 and exp2
+    """
     df = df.apply(pd.to_numeric, errors='ignore')  # Converting the dataframe to numeric
     df = df.round(decimal)  # Setting the precision
 
@@ -91,8 +97,11 @@ def save_runtime(df, path, country=None, static_learner=True, alternate_batch=Fa
             df.to_csv(f'{path}/{country}_runtime_incremental.csv')
 
 
-# Note: Do not change the filenames, since they are later being used for visualizations
 def save_summary_table(df, path, country=False, static_learner=True, alternate_batch=False, transpose=False):
+    # Note: Do not change the filenames, since they are later being used for visualizations
+    """
+    This method is used to save the summary tables of static and incremental models for exp1 and exp2.
+    """
     df = df.apply(pd.to_numeric, errors='ignore')  # Converting the dataframe to numeric
     df = df.round(decimal)  # Setting the precision
 
@@ -122,8 +131,12 @@ def save_summary_table(df, path, country=False, static_learner=True, alternate_b
                 df.to_csv(f'{path}/combined_country_summary_table_incremental.csv')
 
 
-# Note: Do not change the filenames since they are later being used for visualizations
 def save_metrics(df, path, country=None, static_learner=True, alternate_batch=False, transpose=False):
+    """
+    This method saves dataframes in csv and latex format for each error metric (MAPE/MAE/RMSE) and also for
+    static and incremental models in exp1 and exp2
+    """
+    # Note: Do not change the filenames since they are later being used for visualizations
     df = df.apply(pd.to_numeric, errors='ignore')  # Converting the dataframe to numeric
     df = df.round(decimal)  # Setting the precision
 
@@ -153,6 +166,9 @@ def save_metrics(df, path, country=None, static_learner=True, alternate_batch=Fa
 
 
 def save_combined_summary_table(df, path, static_learner=False, transpose=False):
+    """
+    This method saves combined summary table for static and Incremental models.
+    """
     df = df.apply(pd.to_numeric, errors='ignore')
     df = df.round(decimal)
     if transpose:
@@ -168,6 +184,9 @@ def save_combined_summary_table(df, path, static_learner=False, transpose=False)
 
 
 def save_united_df(df, path, country=None):
+    """
+    United dataframe consists of all the results for all countries. This method saves those in csv files.
+    """
     if country:
         df.to_csv(f'{path}/{country}.csv')
     else:
@@ -175,6 +194,9 @@ def save_united_df(df, path, country=None):
 
 
 def display_runtime_per_country(results_runtime, countries):
+    """
+    To display running times on console
+    """
     for i in range(len(countries)):
         print(f'_____________Running Time for {countries[i]}________________')
         print(results_runtime[i].to_string())
@@ -182,6 +204,9 @@ def display_runtime_per_country(results_runtime, countries):
 
 
 def display_countrywise_scores(country, df_error_metric):
+    """
+    Display country-wise dataframes having error-metrics score.
+    """
     print(f'_________________________________{country}____________________________________________')
     print(df_error_metric.to_string())
     print('\n\n')
@@ -189,6 +214,9 @@ def display_countrywise_scores(country, df_error_metric):
 
 def calc_save_err_metric_countrywise(countries, error_metrics, results, max_of_pretrain_per_country,
                                      max_cases_per_country, path, static_learner, transpose):
+    """
+    Calculate and save country-wise dataframes having error-metrics score. This is for exp1.
+    """
     countrywise_error_scores = {}
     for i in range(len(countries)):
         country_error_score = []
@@ -212,6 +240,9 @@ def calc_save_err_metric_countrywise(countries, error_metrics, results, max_of_p
 
 def calc_save_err_metric_combined(error_metrics, results, max_of_pretrain_days, max_selected_countries, path,
                                   static_learner, alternate_batch, transpose):
+    """
+    Calculate and save combined dataframes having error-metrics score. This is for exp2.
+    """
     combined_err_metric = []
     for error_metric in error_metrics:
         df_error_metric = get_metric_with_mean(results, error_metric=error_metric)

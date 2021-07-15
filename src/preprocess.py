@@ -13,6 +13,9 @@ pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
 # Create lags
 def create_features_with_lags(df_2, lag_days):
+    """
+    This function adds lags to the dataset.
+    """
     for i in range(lag_days, 0,
                    -1):  # Loop in reverse order for creating ordered lags eg: cases_t-10, cases_t-9... cases_t-1. t=current cases
         df_2[f'cases_t-{i}'] = df_2['cases'].shift(i, axis=0)
@@ -21,6 +24,12 @@ def create_features_with_lags(df_2, lag_days):
 
 # Preprocess data
 def preprocess_data(df_grouped, total_countries, lag_days):
+    """
+    This function applies some preprocessing steps on dataset and save country-wise files for further processing.
+    Here are some preprocessing steps: Filter features, convert column to date type, add new column, reorder columns,
+                                        add lags, create target and finally save dataset with dropped columns and
+                                        dataset without dropped column for each country.
+    """
     for country in total_countries:
         # process only if file does not exist already
         filepath = os.path.join(csv_processed_path, f'{country}.csv')
@@ -74,16 +83,21 @@ def preprocess_data(df_grouped, total_countries, lag_days):
     print('Processing Done!')
 
 
-# Replaces underscore from country names
 def format_names(list_countries):
+    """
+    This function is used to standardize the country names for plots.
+    """
+    # Replaces underscore from country names
     updated_country_list = []
     for country_name in list_countries:
         updated_country_list.append(country_name.replace("_", " "))
     return updated_country_list
 
 
-# Top selected countries
 def top_selected_countries(num_of_countries):
+    """
+    This function selects the the top n (num_of_countries argument) countries based on the total number of cases.
+    """
     # A dictionary of all countries
     dict_countries = Counter(valid_countries)
     for country in valid_countries:
@@ -100,6 +114,10 @@ def top_selected_countries(num_of_countries):
 
 # get valid countries
 def get_valid_countries(val_countries, path):
+    """
+    This function returns the list of valid countries. Here the valid countries are those that have records more than
+    the maximum number of pretrain days.
+    """
     if len(val_countries) != 0:
         return val_countries
     else:
@@ -108,6 +126,9 @@ def get_valid_countries(val_countries, path):
 
 # plot top countries
 def plot_top_countries(df_top_countries, num_country_plot):
+    """
+    This function creates a bar plot with top countries with maximum number of cases.
+    """
     df_plot_countries = df_top_countries.iloc[0:num_country_plot]
     # Plotting graph
     sns.set_theme(style='white')
@@ -130,6 +151,10 @@ def plot_top_countries(df_top_countries, num_country_plot):
 
 # Average cases of top countries
 def avg_cases_top_countries(df_top_countries, total_countries):
+    """
+    This functions finds the countries that have maximum average cases.
+    Note: This is just for analysis purpose. This is not being used anywhere.
+    """
     dict_countries_avg = Counter(total_countries)
 
     for country in df_top_countries.index.tolist():  # loop through the list of top countries
