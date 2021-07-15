@@ -53,6 +53,9 @@ def get_metric_with_mean(result: pd.DataFrame, error_metric: str) -> pd.DataFram
 
 
 def calc_mean_to_max_error(df, max_of_pretrain_days, max_of_df):
+    """
+    This function calculates the mean by dividing the sum by max of the dataset
+    """
     i = -1
     for row_num in range(len(df) - 1):  # Go before mean row
         i += 1
@@ -259,6 +262,9 @@ def calc_save_err_metric_combined(error_metrics, results, max_of_pretrain_days, 
 
 
 def get_summary_table(df_result, df_runtime_result, error_metrics, static_learner=True):
+    """
+    This method calculates the summary dataframe for exp2 for all metrics
+    """
     sum_metric = []
     measure_col_name = 'Metric'
 
@@ -288,6 +294,9 @@ def get_summary_table(df_result, df_runtime_result, error_metrics, static_learne
 
 
 def get_summary_table_countrywise(df_result_dict, error_metrics, static_learner=True):  # df_runtime_result,
+    """
+    This method calculates the summary dataframe for exp2 for all metrics
+    """
     summary_metric = []
     measure_col_name = f'Country({str(error_metrics[0])})'
     eval_measure_col = 'EvaluationMeasurement'
@@ -424,6 +433,9 @@ def unit_static_df(country_name, date, y_true, milestone, model_predictions):  #
 # COMBINING DATASET
 
 def sortby_date_and_set_index(df):  # Updated
+    """
+    This function changes column type to datetime using date format
+    """
     df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y')
     df.sort_values('date', inplace=True)
     # df.set_index('date', inplace=True) #TODO:  Not setting date as idx; Might need to remove this line later
@@ -431,14 +443,20 @@ def sortby_date_and_set_index(df):  # Updated
 
 
 # Create lags
-def create_features_with_lags(df):
-    for i in range(89, 0,
+def create_features_with_lags(df, lag_days):
+    """
+    This function adds lags to the dataset.
+    """
+    for i in range(lag_days, 0,
                    -1):  # Loop in reverse order for creating ordered lags eg: cases_t-10, cases_t-9... cases_t-1. t=current cases
         df[f'cases_t-{i}'] = df['cases'].shift(i, axis=0)
     return df
 
 
-def get_dataset_with_target(countries, df_grouped):
+def get_dataset_with_target(countries, df_grouped, lag_days):
+    """
+    This function applies some pre-processing and add lags to the dataset.
+    """
     # Empty list to store Dataframes of each country
     frames = []
 
@@ -453,7 +471,7 @@ def get_dataset_with_target(countries, df_grouped):
         df = df[['date', 'day_no', 'country', 'cases']]  # Added: Date column
 
         # Adding features through lags
-        df = create_features_with_lags(df)
+        df = create_features_with_lags(df, lag_days)
 
         # Creating target with last 10 days cases
         idx_cases = list(df.columns).index('cases')  # Added: Earlier hard coded idx
@@ -470,11 +488,13 @@ def get_dataset_with_target(countries, df_grouped):
 
         frames.append(df)
 
-    return (pd.concat(frames, ignore_index=True))
+    return pd.concat(frames, ignore_index=True)
 
 
 def reshape_dataframe(*data: np.ndarray):
-    # This function adds an extra dimension which is necessary in the LSTM
+    """
+    This function adds an extra dimension which is necessary in the LSTM
+    """
     arr = []
     for d in data:
         arr.append(np.reshape(np.array(d), (d.shape[0], 1, d.shape[1])))
@@ -626,22 +646,6 @@ def instantiate_regressors():
     return model, model_names
 
 
-'''
-def get_error_scores_per_model(evaluator, mdl_evaluation_scores) -> pd.DataFrame:
-    for i in range(len(evaluator.model_names)):
-        # Desired error metrics
-        mse = evaluator.mean_eval_measurements[i].get_mean_square_error()
-        mae = evaluator.mean_eval_measurements[i].get_average_error()
-        mape = evaluator.mean_eval_measurements[i].get_mean_absolute_percentage_error()
-        rmse = sqrt(mse)
-
-        # Dictionary of errors per model
-        mdl_evaluation_scores[str(evaluator.model_names[i])] = [rmse, mae, mape]
-
-    return (pd.DataFrame(mdl_evaluation_scores))
-'''
-
-
 def get_error_scores_per_model(evaluator, mdl_evaluation_scores, inc_alt_batches=False) -> pd.DataFrame:
     for i in range(len(evaluator.model_names)):
         # Desired error metrics
@@ -731,6 +735,9 @@ def get_running_time_per_model_static_learner(model_predictions, total_execution
 
 
 def measure(wrapped_func):
+    """
+    Function to calculate running time.
+    """
     @wraps(wrapped_func)
     def _time_it(*args, **kwargs):
         start = pc_timer()
@@ -815,3 +822,19 @@ def reset(*args):
     if len(args)>0:
         empty_lists = [[]]*len(args)
     return empty_lists
+
+
+'''
+def get_error_scores_per_model(evaluator, mdl_evaluation_scores) -> pd.DataFrame:
+    for i in range(len(evaluator.model_names)):
+        # Desired error metrics
+        mse = evaluator.mean_eval_measurements[i].get_mean_square_error()
+        mae = evaluator.mean_eval_measurements[i].get_average_error()
+        mape = evaluator.mean_eval_measurements[i].get_mean_absolute_percentage_error()
+        rmse = sqrt(mse)
+
+        # Dictionary of errors per model
+        mdl_evaluation_scores[str(evaluator.model_names[i])] = [rmse, mae, mape]
+
+    return (pd.DataFrame(mdl_evaluation_scores))
+'''

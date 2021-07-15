@@ -251,6 +251,7 @@ exp2_static_united_df_path = parsed_yaml_file['paths']['exp2_static_united_df_pa
 data_path = parsed_yaml_file['paths']['data_path']
 valid_countries = parsed_yaml_file['valid_countries']
 num_selected_countries = len(valid_countries)
+lag_days = int(parsed_yaml_file['lag_days'])
 
 # Get Dataset
 df = pd.read_csv(data_path)
@@ -258,7 +259,7 @@ df = preprocess_dataset(df)
 df_grouped = df.groupby('country')
 
 # Calculating targets and lags for the above countries
-result = get_dataset_with_target(valid_countries, df_grouped)
+result = get_dataset_with_target(valid_countries, df_grouped, lag_days)
 
 # Getting max of each subset in pretrain size
 max_of_pretrain_days = calc_max_of_pretrain_days(pretrain_days, result)
