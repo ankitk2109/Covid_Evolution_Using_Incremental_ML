@@ -101,8 +101,8 @@ train the model with 50 countries rather than training it with a single country 
 
 2. Once the above folder structure is ready, make sure all the requirements are installed as mentioned in [requirement.txt](requirement.txt).
 
-3. Run the  [preprocess.py](src\preprocess.py) file to create the data frames and files required for both experiments.
+3. Run the  [preprocess.py](src/preprocess.py) file to create the data frames and files required for both experiments.
 
-4. Make sure that  [skmultiflow](src\skmultiflow) folder is present in source code as we have implemented few functionalities that were not a part of skmultiflow package originally.
+4. Make sure that  [skmultiflow](src/skmultiflow/src) folder is present in source code as we have implemented few functionalities that were not a part of skmultiflow package originally.
 
-5. Run the  [exp1.py](src\exp1.py)  and  [exp2.py](src\exp2.py)  files to generate results.
+5. Run the  [exp1.py](src/exp1.py)  and  [exp2.py](src/exp2.py)  files to generate results.
