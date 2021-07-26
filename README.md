@@ -61,7 +61,48 @@ train the model with 50 countries rather than training it with a single country 
 
 
 
-## Evolution of MAPE
+## Steps to run
 
-![Evolution of MAPE](https://user-images.githubusercontent.com/26432753/121811303-e4581480-cc5b-11eb-828a-aa7d4e4507aa.png)
+1. Before running the code make sure the following empty structure for **running_results** directory is created in **results**:
 
+   ```bash
+   `results`
+   `├───final_result_files`
+   `├───final_result_plots`
+   `│   ├───barplot`
+   `│   └───boxplots`
+   `└───running_results`
+       `└───content`
+           `├───csv_files`
+           `│   ├───processed`
+           `│   └───processed_null`
+           `├───Plots`
+           `│   ├───barplot`
+           `│   └───boxplots`
+           `└───Result`
+               `├───exp1`
+               `│   ├───runtime`
+               `│   ├───summary`
+               `│   └───united_dataframe`
+               `│       ├───incremental`
+               `│       └───static`
+               `├───exp2`
+               `│   ├───runtime`
+               `│   ├───summary`
+               `│   └───united_dataframe`
+               `│       ├───incremental`
+               `│       └───static`
+               `└───exp3`
+                   `├───runtime`
+                   `├───summary`
+                   `└───united_dataframe`
+                       `└───incremental_alternate`
+   ```
+
+2. Once the above folder structure is ready, make sure all the requirements are installed as mentioned in [requirement.txt](requirement.txt).
+
+3. Run the  [preprocess.py](src\preprocess.py) file to create the data frames and files required for both experiments.
+
+4. Make sure that  [skmultiflow](src\skmultiflow) folder is present in source code as we have implemented few functionalities that were not a part of skmultiflow package originally.
+
+5. Run the  [exp1.py](src\exp1.py)  and  [exp2.py](src\exp2.py)  files to generate results.
