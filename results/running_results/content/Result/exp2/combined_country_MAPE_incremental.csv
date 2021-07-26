@@ -1,7 +1,0 @@
-,0,1,mean
-EvaluationMeasurement,MAPE,MAPE,
-PretrainDays,30.0,240.0,135.0
-HT_Reg,133.304,1.002,67.153
-HAT_Reg,133.254,1.0,67.127
-ARF_Reg,112.469,0.554,56.511
-PA_Reg,67.718,7.827,37.772

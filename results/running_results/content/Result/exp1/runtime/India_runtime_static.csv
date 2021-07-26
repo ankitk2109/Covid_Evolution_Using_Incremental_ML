@@ -1,3 +1,0 @@
-,PretrainDays,RandomForest,GradientBoosting,LinearSVR,DecisionTree,BayesianRidge,LSTM
-0,30,0.482,0.077,0.015,0.017,0.018,20.011
-1,240,0.504,0.308,0.046,0.022,0.025,20.169
