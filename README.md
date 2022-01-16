@@ -5,7 +5,7 @@ Modelling the COVID-19 virus evolution using incremental machine learning method
 
 
 ## About the Experiment
-In this work, we recreated the scene of a year ago, 2020, when the pandemic erupted across the world for the fifty countries with more COVID-19 cases reported. We performed some experiments in which we compare state-of-the-art machine learning algorithms, such as LSTM, against online incremental machine learning algorithms to adapt them to the daily changes in the spread of the disease and predict future COVID-19 cases.
+In this work, we recreated the scene of the year, 2020, when the pandemic erupted across the world and selected top fifty countries with more COVID-19 cases reported. We performed some experiments in which we compare state-of-the-art machine learning algorithms, such as LSTM, against online incremental machine learning algorithms to adapt them to the daily changes in the spread of the disease and predict future COVID-19 cases.
 
 
 
