@@ -234,10 +234,8 @@ def start_static_learning():
                        transpose=True)
 
 
-yaml_file_path = "../config.yaml"
-with open(yaml_file_path, 'r') as yaml_file:
-    # yaml_file = open(yaml_file_path)
-    parsed_yaml_file = yaml.load(yaml_file, Loader=yaml.FullLoader)
+# YAML FILE
+parsed_yaml_file = get_configs_yaml()
 
 # Fetching Vars
 exp2_inc_united_df_path = parsed_yaml_file['paths']['exp2_inc_united_df_path']

@@ -272,11 +272,7 @@ def start_static_learning():
 
 
 # YAML FILE
-# yaml_file_path = "vars.yaml"
-yaml_file_path = "../config.yaml"
-with open(yaml_file_path, 'r') as yaml_file:
-    # yaml_file = open(yaml_file_path)
-    parsed_yaml_file = yaml.load(yaml_file, Loader=yaml.FullLoader)
+parsed_yaml_file = get_configs_yaml()
 
 # Fetching Vars
 exp1_inc_united_df_path = parsed_yaml_file['paths']['exp1_inc_united_df_path']
