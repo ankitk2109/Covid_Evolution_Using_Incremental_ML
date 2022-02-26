@@ -3,6 +3,11 @@ error_metrics:
 - MAE
 - MAPE
 - RMSE
+distance_metrics:
+- euclidean
+- cityblock
+- braycurtis
+lag_days: 89
 num_country_plot: 50
 number_of_countries: 50
 paths:
@@ -21,7 +26,7 @@ paths:
   exp2_runtime_path: ../results/running_results/content/Result/exp2/runtime
   exp2_static_united_df_path: ../results/running_results/content/Result/exp2/united_dataframe/static
   exp2_summary_path: ../results/running_results/content/Result/exp2/summary
-lag_days: 89
+  exp3_distance_path: ../results/final_result_files/exp3/distances.pkl
 pretrain_days:
 - 30
 - 60
