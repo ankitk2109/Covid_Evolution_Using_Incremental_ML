@@ -26,7 +26,11 @@ paths:
   exp2_runtime_path: ../results/running_results/content/Result/exp2/runtime
   exp2_static_united_df_path: ../results/running_results/content/Result/exp2/united_dataframe/static
   exp2_summary_path: ../results/running_results/content/Result/exp2/summary
+  exp3_path: ../results/running_results/content/Result/exp3
   exp3_distance_path: ../results/final_result_files/exp3/distances.pkl
+  exp3_sorted_euclidean_path: ../results/final_result_files/exp3/sorted_dist_path_euclidean.pkl
+  exp3_sorted_cityblock_path: ../results/final_result_files/exp3/sorted_dist_path_cityblock.pkl
+  exp3_sorted_braycurtis_path: ../results/final_result_files/exp3/sorted_dist_path_braycurtis.pkl
 pretrain_days:
 - 30
 - 60

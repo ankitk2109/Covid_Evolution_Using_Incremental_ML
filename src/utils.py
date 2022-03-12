@@ -8,7 +8,7 @@ import pandas as pd
 import yaml
 from keras.callbacks import EarlyStopping
 from keras.layers import Dense, Dropout, LSTM
-# from tensorflow.keras import Sequential
+from tensorflow.keras import Sequential
 from keras.models import Sequential
 from scipy import stats
 
