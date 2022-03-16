@@ -201,6 +201,39 @@ def initialize_static_models():
     return static_models
 
 
+def get_summary_table_countrywise(df_result_dict, err_metrics, static_learner=True):  # df_runtime_result,
+    """
+    This method calculates the summary dataframe for exp2 for all metrics
+    """
+    summary_metric = []
+    measure_col_name = f'Country({str(err_metrics[0])})'
+    eval_measure_col = 'EvaluationMeasurement'
+    start_row = 'mean'
+    if static_learner:
+        start_col = 'RandomForestRegressor'
+    else:
+        start_col = 'HT_Reg'
+
+    for country in df_result_dict.keys():
+        df_result = df_result_dict[country]
+
+        # converting types to numeric values
+        df_result = df_result.apply(pd.to_numeric, errors='ignore')
+
+        # Setting start row and column for static and incremental learner
+        for metric in err_metrics:
+            df_metric = get_metric_with_mean(df_result, metric)
+            df_row = pd.DataFrame([df_metric.loc[start_row][start_col:]])
+            df_row[eval_measure_col] = metric
+            df_row[measure_col_name] = country
+            summary_metric.append(df_row)
+
+    df_summary = pd.concat(summary_metric, ignore_index=True)
+    df_summary.set_index(measure_col_name, inplace=True)
+
+    return df_summary
+
+
 def get_static_model_prediction(static_models, x_train, x_test, y_train):
     static_predictions = {type(m).__name__: [] for m in static_models}
     for m in static_models:
@@ -246,6 +279,29 @@ def add_extra_row(df):
     return df
 
 
+def get_sum_table_combined_mean(countrywise_error_score, static_learner=False):
+    sum_table_combined_mean = []
+    measure_col_name = 'Metric'
+    start_row = 'mean'
+    if static_learner:
+        start_col = 'RandomForestRegressor'
+    else:
+        start_col = 'HT_Reg'
+
+    for metric in error_metrics:
+        df_sum_cur_metric = get_summary_table_countrywise(countrywise_error_score, [metric],
+                                                          static_learner=static_learner)
+        df_row = pd.DataFrame([df_sum_cur_metric.describe().loc[start_row]])
+
+        df_row[measure_col_name] = metric
+        sum_table_combined_mean.append(df_row)
+
+    # Concat results to one dataframe
+    sum_table_combined_mean = pd.concat(sum_table_combined_mean, ignore_index=True)
+    sum_table_combined_mean.set_index(measure_col_name, inplace=True)
+    return sum_table_combined_mean
+
+
 def start_static_learning(distances, paths, features, err_metric, save_path):
     """
 
@@ -260,29 +316,52 @@ def start_static_learning(distances, paths, features, err_metric, save_path):
 
     """
     # iterate over all source country and closest target countries
+    final_score = {}
     for source_country in distances:
         files_exists, file_paths = [], []
+
+        # check if score files exist
         for m in err_metric:
             f_name = get_filename(m, country=source_country)
             files_exists.append(os.path.exists(f"{save_path}/{f_name}"))
             file_paths.append(f"{save_path}/{f_name}")
 
+        # scores files not present
         if not all(files_exists):
-            combined_score_df = []
+            combined_score_df, combined_score_mean_df = [], []
+            # iterate over milestone and predict scores
             for milestone in distances[source_country]:
                 closest_countries = distances[source_country][milestone]['country']
                 train, test = get_train_test_set(source_country, closest_countries, milestone, paths, features, sort_by='date',
                                                  remove_duplicate=False)
                 x_train, x_test, y_train, y_test = split_train_test(train, test)
-                models = initialize_static_models()
+                models = initialize_static_models()  # new iteration fresh model
                 predictions = get_static_model_prediction(models, x_train, x_test, y_train)
                 score_df = get_scores(y_test, predictions, milestone)
                 combined_score_df.append(score_df)
 
+            # all metric score for current source country
             combined_score_df = pd.concat(combined_score_df, ignore_index=True)
-            save_error_metric(source_country, combined_score_df, err_metric, path=save_path)
+
+            # calculate mean and save scores
+            for m in err_metric:
+                metric_score_df = get_metric_with_mean(combined_score_df, m)  # calculate mean
+                save_metrics(metric_score_df, save_path, country=source_country, transpose=True)  # save score
+                combined_score_mean_df.append(metric_score_df)
+
+            final_score[source_country] = pd.concat(combined_score_mean_df)
+
+        # scores file present
         else:
-            pd.concat([pd.read_csv(filename) for filename in file_paths])
+            combined_score_mean_df = [pd.read_csv(filename, index_col='Unnamed: 0').transpose() for filename in file_paths]
+            final_score[source_country] = pd.concat(combined_score_mean_df)
+
+    summary_table_countrywise_static = get_summary_table_countrywise(final_score, ['MAPE'], static_learner=True)
+    save_summary_table(summary_table_countrywise_static, exp3_summary_path, country=True, static_learner=True,
+                       alternate_batch=False, transpose=True)
+
+    sum_static_countrywise_mean = get_sum_table_combined_mean(final_score, static_learner=True)
+    save_combined_summary_table(sum_static_countrywise_mean, exp3_summary_path, static_learner=True, transpose=True)
 
 
 def start_inc_learning(distances, paths, features, err_metric, save_path):
@@ -298,15 +377,20 @@ def start_inc_learning(distances, paths, features, err_metric, save_path):
     -------
 
     """
+    final_score = {}
     for source_country in distances:
         files_exists, file_paths = [], []
+
+        # check if score files exist
         for m in err_metric:
             f_name = get_filename(m, country=source_country, static_learner=False)
             files_exists.append(os.path.exists(f"{save_path}/{f_name}"))
             file_paths.append(f"{save_path}/{f_name}")
 
+        # scores files not present
         if not all(files_exists):
-            combined_score_df = []
+            combined_score_df, combined_score_mean_df = [], []
+            # iterate over milestone and predict scores
             for milestone in distances[source_country]:
                 models, model_names = instantiate_regressors()
                 closest_countries = distances[source_country][milestone]['country']
@@ -333,10 +417,29 @@ def start_inc_learning(distances, paths, features, err_metric, save_path):
                 score_df = get_error_scores_per_model(evaluator, mdl_evaluation_scores)
                 combined_score_df.append(score_df)
 
+            # all metric score for current source country
             combined_score_df = pd.concat(combined_score_df, ignore_index=True)
-            save_error_metric(source_country, combined_score_df, err_metric, path=save_path, static_learner=False)
+
+            # calculate mean and save scores
+            for m in err_metric:
+                metric_score_df = get_metric_with_mean(combined_score_df, m)  # calculate mean
+                save_metrics(metric_score_df, save_path, country=source_country, static_learner=False, transpose=True)  # save score
+                combined_score_mean_df.append(metric_score_df)
+
+            final_score[source_country] = pd.concat(combined_score_mean_df)
+
+        # scores file present
         else:
-            pd.concat([pd.read_csv(filename) for filename in file_paths])
+            combined_score_mean_df = [pd.read_csv(filename, index_col='Unnamed: 0').transpose() for filename in
+                                      file_paths]
+            final_score[source_country] = pd.concat(combined_score_mean_df)
+
+    summary_table_countrywise_inc = get_summary_table_countrywise(final_score, ['MAPE'], static_learner=False)
+    save_summary_table(summary_table_countrywise_inc, exp3_summary_path, country=True, static_learner=False,
+                       alternate_batch=False, transpose=True)
+
+    sum_inc_countrywise_mean = get_sum_table_combined_mean(final_score, static_learner=False)
+    save_combined_summary_table(sum_inc_countrywise_mean, exp3_summary_path, static_learner=False, transpose=True)
 
 
 # YAML FILE
@@ -348,7 +451,7 @@ distance_metrics = parsed_yaml_file['distance_metrics']
 exp3_distance_path = parsed_yaml_file['paths']['exp3_distance_path']
 error_metrics = parsed_yaml_file['error_metrics']
 exp3_path = parsed_yaml_file['paths']['exp3_path']
-exp4_path = r"C:\Ankit\Personal\Github\Covid_Evolution_Using_Incremental_ML\results\running_results\content\Result\exp4"
+exp3_summary_path = parsed_yaml_file['paths']['exp3_summary_path']
 
 # Find distances among countries
 country_wise_distances = find_distance(exp3_distance_path, countries, distance_metrics, num_of_country=50)
@@ -362,8 +465,8 @@ top_selected_distances = select_top_n(sorted_distances, n=9)
 # a list of features to exclude from train and test
 features_to_select = {'start_column': 'cases_t-89', 'end_column': 'target', 'exclude_column': None}
 
-start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp4_path)
+start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
 
-# start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp4_path)
+start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
 
 
