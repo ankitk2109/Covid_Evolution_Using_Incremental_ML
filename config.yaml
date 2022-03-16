@@ -31,6 +31,7 @@ paths:
   exp3_sorted_euclidean_path: ../results/final_result_files/exp3/sorted_dist_path_euclidean.pkl
   exp3_sorted_cityblock_path: ../results/final_result_files/exp3/sorted_dist_path_cityblock.pkl
   exp3_sorted_braycurtis_path: ../results/final_result_files/exp3/sorted_dist_path_braycurtis.pkl
+  exp3_summary_path: ../results/running_results/content/Result/exp3/summary
 pretrain_days:
 - 30
 - 60
