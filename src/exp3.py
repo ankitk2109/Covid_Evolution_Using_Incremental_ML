@@ -25,16 +25,6 @@ from src.skmultiflow.src.evaluate_prequential import EvaluatePrequential
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
-# YAML FILE
-parsed_yaml_file = get_configs_yaml()
-pretrain_days = parsed_yaml_file['pretrain_days']
-countries = parsed_yaml_file['valid_countries']
-csv_processed_path = parsed_yaml_file['paths']['csv_processed_path']
-distance_metrics = parsed_yaml_file['distance_metrics']
-exp3_distance_path = parsed_yaml_file['paths']['exp3_distance_path']
-error_metrics = parsed_yaml_file['error_metrics']
-exp3_path = parsed_yaml_file['paths']['exp3_path']
-
 
 def format_result(country_dict, milestones):
     """
@@ -218,43 +208,33 @@ def get_static_model_prediction(static_models, x_train, x_test, y_train):
     return static_predictions
 
 
-def save_error_metric(scores, metrics, path, static_learner=True, alternate_batch=False, transpose=True):
-    for key_country in scores:
-        if len(scores[key_country]) > 1:  # dataframe is not empty
-            for m in metrics:
-                metric_score_df = get_metric_with_mean(scores[key_country], m)
-                save_metrics(metric_score_df,
-                             path,
-                             country=key_country,
-                             static_learner=static_learner,
-                             alternate_batch=alternate_batch,
-                             transpose=transpose)
-                print(f'Saved {m} score for country: {key_country}')
+def get_filename(metric_type, country=None, static_learner=True, alternate_batch=False):
+    if country is None:
+        if static_learner:
+            return f'/combined_country_{metric_type}_static.csv'
+        else:
+            if alternate_batch:
+                return f'/combined_country_{metric_type}_incremental_alternate_batch.csv'
+            else:
+                return f'combined_country_{metric_type}_incremental.csv'
+    else:
+        if static_learner:
+            return f'/{country}_{metric_type}_static.csv'
+        else:
+            return f'/{country}_{metric_type}_incremental.csv'
 
 
-def start_static_learning(distances, paths, features):
-    # iterate over all source country and closest target countries
-    final_score = {source_country: [] for source_country in sorted(distances)[0:2]}  # TODO: remove sorted
-    for source_country in sorted(distances)[0:2]:  # TODO: remove sorted
-        combined_score_df = []
-        for milestone in distances[source_country]:
-            closest_countries = distances[source_country][milestone]['country']
-            train, test = get_train_test_set(source_country, closest_countries, milestone, paths, features, sort_by='date',
-                                             remove_duplicate=False)
-            x_train, x_test, y_train, y_test = split_train_test(train, test)
-            models = initialize_static_models()
-            predictions = get_static_model_prediction(models, x_train, x_test, y_train)
-            score_df = get_scores(y_test, predictions, milestone)
-            combined_score_df.append(score_df)
-        final_score[source_country] = pd.concat(combined_score_df, ignore_index=True)
-
-    save_error_metric(final_score,
-                      error_metrics,
-                      path=exp3_path,
-                      static_learner=True,
-                      alternate_batch=False,
-                      transpose=True)
-    print('Done')
+def save_error_metric(src_country, scores, metrics, path, static_learner=True, alternate_batch=False, transpose=True):
+    if len(scores) > 1:  # dataframe is not empty
+        for m in metrics:
+            metric_score_df = get_metric_with_mean(scores, m)
+            save_metrics(metric_score_df,
+                         path,
+                         country=src_country,
+                         static_learner=static_learner,
+                         alternate_batch=alternate_batch,
+                         transpose=transpose)
+            print(f'Saved {m} score for country: {src_country}')
 
 
 def add_extra_row(df):
@@ -266,46 +246,109 @@ def add_extra_row(df):
     return df
 
 
-def start_inc_learning(distances, paths, features):
-    final_score = {source_country: [] for source_country in sorted(distances)[0:2]}  # TODO: remove sorted
-    for source_country in sorted(distances)[0:2]:  # TODO: remove sorted
-        combined_score_df = []
-        for milestone in distances[source_country]:
-            models, model_names = instantiate_regressors()
-            closest_countries = distances[source_country][milestone]['country']
-            train, test = get_train_test_set(source_country, closest_countries, milestone, paths, features,
-                                             sort_by='date', remove_duplicate=False)
-            train = add_extra_row(train)  # add extra row for pretraining
-            x_train, x_test, y_train, y_test = split_train_test(train, test)
-            train_stream = DataStream(np.array(x_train), y=np.array(y_train))
-            test_stream = DataStream(np.array(x_test), y=np.array(y_test))
-            pretrain_size = milestone * len(closest_countries)
-            max_samples = pretrain_size + 1  # One Extra Sample
-            evaluator = EvaluatePrequential(show_plot=False,
-                                            pretrain_size=pretrain_size,
-                                            metrics=['mean_square_error',
-                                                     'mean_absolute_error',
-                                                     'mean_absolute_percentage_error'],
-                                            max_samples=max_samples)
-            evaluator.evaluate(stream=train_stream, model=models, model_names=model_names)
-            predictions = evaluator.predict(test_stream.X)
-            evaluator = reset_evaluator(evaluator)  # evaluated on 1 sample, reset it
-            evaluator = update_incremental_metrics(evaluator, test_stream.y, predictions)
-            mdl_evaluation_scores = {'EvaluationMeasurement': ['RMSE', 'MAE', 'MAPE']}
-            mdl_evaluation_scores['PretrainDays'] = [milestone] * len(mdl_evaluation_scores['EvaluationMeasurement'])
-            score_df = get_error_scores_per_model(evaluator, mdl_evaluation_scores)
-            combined_score_df.append(score_df)
+def start_static_learning(distances, paths, features, err_metric, save_path):
+    """
 
-        final_score[source_country] = pd.concat(combined_score_df, ignore_index=True)
+    Parameters
+    ----------
+    distances: source country to n closest country dictionary
+    paths: path to extract csv files for each source and closest country
+    features: a dictionary for deciding the columns
+    err_metric: list of error metric to calculate fro each country
+    save_path: path to save the results
+    -------
 
-    save_error_metric(final_score,
-                      error_metrics,
-                      path=exp3_path,
-                      static_learner=False,
-                      alternate_batch=False,
-                      transpose=True)
-    print('Done')
+    """
+    # iterate over all source country and closest target countries
+    for source_country in distances:
+        files_exists, file_paths = [], []
+        for m in err_metric:
+            f_name = get_filename(m, country=source_country)
+            files_exists.append(os.path.exists(f"{save_path}/{f_name}"))
+            file_paths.append(f"{save_path}/{f_name}")
 
+        if not all(files_exists):
+            combined_score_df = []
+            for milestone in distances[source_country]:
+                closest_countries = distances[source_country][milestone]['country']
+                train, test = get_train_test_set(source_country, closest_countries, milestone, paths, features, sort_by='date',
+                                                 remove_duplicate=False)
+                x_train, x_test, y_train, y_test = split_train_test(train, test)
+                models = initialize_static_models()
+                predictions = get_static_model_prediction(models, x_train, x_test, y_train)
+                score_df = get_scores(y_test, predictions, milestone)
+                combined_score_df.append(score_df)
+
+            combined_score_df = pd.concat(combined_score_df, ignore_index=True)
+            save_error_metric(source_country, combined_score_df, err_metric, path=save_path)
+        else:
+            pd.concat([pd.read_csv(filename) for filename in file_paths])
+
+
+def start_inc_learning(distances, paths, features, err_metric, save_path):
+    """
+
+    Parameters
+    ----------
+    distances: source country to n closest country dictionary
+    paths: path to extract csv files for each source and closest country
+    features: a dictionary for deciding the columns
+    err_metric: list of error metric to calculate fro each country
+    save_path: path to save the results
+    -------
+
+    """
+    for source_country in distances:
+        files_exists, file_paths = [], []
+        for m in err_metric:
+            f_name = get_filename(m, country=source_country, static_learner=False)
+            files_exists.append(os.path.exists(f"{save_path}/{f_name}"))
+            file_paths.append(f"{save_path}/{f_name}")
+
+        if not all(files_exists):
+            combined_score_df = []
+            for milestone in distances[source_country]:
+                models, model_names = instantiate_regressors()
+                closest_countries = distances[source_country][milestone]['country']
+                train, test = get_train_test_set(source_country, closest_countries, milestone, paths, features,
+                                                 sort_by='date', remove_duplicate=False)
+                train = add_extra_row(train)  # add extra row for pretraining
+                x_train, x_test, y_train, y_test = split_train_test(train, test)
+                train_stream = DataStream(np.array(x_train), y=np.array(y_train))
+                test_stream = DataStream(np.array(x_test), y=np.array(y_test))
+                pretrain_size = milestone * len(closest_countries)
+                max_samples = pretrain_size + 1  # One Extra Sample
+                evaluator = EvaluatePrequential(show_plot=False,
+                                                pretrain_size=pretrain_size,
+                                                metrics=['mean_square_error',
+                                                         'mean_absolute_error',
+                                                         'mean_absolute_percentage_error'],
+                                                max_samples=max_samples)
+                evaluator.evaluate(stream=train_stream, model=models, model_names=model_names)
+                predictions = evaluator.predict(test_stream.X)
+                evaluator = reset_evaluator(evaluator)  # evaluated on 1 sample, reset it
+                evaluator = update_incremental_metrics(evaluator, test_stream.y, predictions)
+                mdl_evaluation_scores = {'EvaluationMeasurement': ['RMSE', 'MAE', 'MAPE']}
+                mdl_evaluation_scores['PretrainDays'] = [milestone] * len(mdl_evaluation_scores['EvaluationMeasurement'])
+                score_df = get_error_scores_per_model(evaluator, mdl_evaluation_scores)
+                combined_score_df.append(score_df)
+
+            combined_score_df = pd.concat(combined_score_df, ignore_index=True)
+            save_error_metric(source_country, combined_score_df, err_metric, path=save_path, static_learner=False)
+        else:
+            pd.concat([pd.read_csv(filename) for filename in file_paths])
+
+
+# YAML FILE
+parsed_yaml_file = get_configs_yaml()
+pretrain_days = parsed_yaml_file['pretrain_days']
+countries = parsed_yaml_file['valid_countries']
+csv_processed_path = parsed_yaml_file['paths']['csv_processed_path']
+distance_metrics = parsed_yaml_file['distance_metrics']
+exp3_distance_path = parsed_yaml_file['paths']['exp3_distance_path']
+error_metrics = parsed_yaml_file['error_metrics']
+exp3_path = parsed_yaml_file['paths']['exp3_path']
+exp4_path = r"C:\Ankit\Personal\Github\Covid_Evolution_Using_Incremental_ML\results\running_results\content\Result\exp4"
 
 # Find distances among countries
 country_wise_distances = find_distance(exp3_distance_path, countries, distance_metrics, num_of_country=50)
@@ -319,6 +362,8 @@ top_selected_distances = select_top_n(sorted_distances, n=9)
 # a list of features to exclude from train and test
 features_to_select = {'start_column': 'cases_t-89', 'end_column': 'target', 'exclude_column': None}
 
-# start_static_learning(top_selected_distances, csv_processed_path, features_to_select)
+start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp4_path)
 
-start_inc_learning(top_selected_distances, csv_processed_path, features_to_select)
+# start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp4_path)
+
+
