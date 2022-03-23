@@ -190,13 +190,18 @@ def split_train_test(train_df, test_df):
     return x_train_df, x_test_df, y_train_df, y_test_df
 
 
-def initialize_static_models():
+def initialize_static_models(lstm_params):
+    lstm_model = define_lstm_model(lstm_params['x_train_lstm'],
+                                   lstm_params['layers'],
+                                   lstm_params['activations'],
+                                   lstm_params['patience'])
     static_models = [
         RandomForestRegressor(max_depth=2, random_state=0),
         GradientBoostingRegressor(random_state=0),
         LinearSVR(random_state=0, tol=1e-5),
         DecisionTreeRegressor(random_state=0),
-        BayesianRidge()
+        BayesianRidge(),
+        lstm_model
     ]
     return static_models
 
@@ -234,10 +239,20 @@ def get_summary_table_countrywise(df_result_dict, err_metrics, static_learner=Tr
     return df_summary
 
 
-def get_static_model_prediction(static_models, x_train, x_test, y_train):
-    static_predictions = {type(m).__name__: [] for m in static_models}
+def get_static_model_prediction(static_models, x_train, x_test, y_train, lstm_params):
+    static_predictions = {type(m).__name__ if type(m).__name__ is not 'Sequential' else 'LSTM': [] for m in static_models}
     for m in static_models:
-        static_predictions[type(m).__name__], exec_time = train_test_model(m, x_train, y_train, x_test)
+        if type(m).__name__ == 'Sequential':  # LSTM == Sequential
+            static_predictions['LSTM'], exec_time = train_test_lstm(m, lstm_params['x_train_lstm'],
+                                                                              lstm_params['y_train_batch'],
+                                                                              lstm_params['x_val_lstm'],
+                                                                              lstm_params['y_val_batch'],
+                                                                              lstm_params['x_test_lstm'],
+                                                                              lstm_params['patience'],
+                                                                              lstm_params['epochs'],
+                                                                              lstm_params['batch_size_lstm'])
+        else:
+            static_predictions[type(m).__name__], exec_time = train_test_model(m, x_train, y_train, x_test)
     return static_predictions
 
 
@@ -302,7 +317,29 @@ def get_sum_table_combined_mean(countrywise_error_score, static_learner=False):
     return sum_table_combined_mean
 
 
-def start_static_learning(distances, paths, features, err_metric, save_path):
+def split_train_val_lstm(train, x_test, batch_size, lstm_params):
+    train_df = train.iloc[:-batch_size, :]
+    val_df = train_df.iloc[-batch_size:]
+
+    x_train_batch, y_train_batch = train_df.iloc[:, :-1], train_df.iloc[:, -1]
+    x_val_batch, y_val_batch = val_df.iloc[:, :-1], val_df.iloc[:, -1]
+
+    # normalize
+    x_train_lstm_norm, x_test_lstm_norm, x_val_lstm_norm = normalize_dataset(x_train_batch, x_test, x_val_batch)
+
+    # Reshaping the dataframes
+    x_train_lstm, x_val_lstm, x_test_lstm = reshape_dataframe(x_train_lstm_norm, x_val_lstm_norm, x_test_lstm_norm)
+
+    lstm_params.update({'x_train_lstm': x_train_lstm,
+                        'x_val_lstm': x_val_lstm,
+                        'x_test_lstm': x_test_lstm,
+                        'y_train_batch': y_train_batch,
+                        'y_val_batch': y_val_batch})
+
+    return lstm_params
+
+
+def start_static_learning(distances, paths, features, err_metric, batch_size_lstm, save_path):
     """
 
     Parameters
@@ -311,12 +348,21 @@ def start_static_learning(distances, paths, features, err_metric, save_path):
     paths: path to extract csv files for each source and closest country
     features: a dictionary for deciding the columns
     err_metric: list of error metric to calculate fro each country
+    batch_size_lstm: batch size to be extracted from each country
     save_path: path to save the results
     -------
 
     """
     # iterate over all source country and closest target countries
     final_score = {}
+
+    # params (others like epoch and batch size are also hardcoded in train_test_lstm())
+    lstm_params = {'layers': [50, 30, 20, 10],
+                   'activations': ['tanh', 'tanh', 'relu'],
+                   'epochs': 200,
+                   'patience': 20,
+                   'batch_size_lstm': batch_size_lstm}
+
     for source_country in distances:
         files_exists, file_paths = [], []
 
@@ -335,9 +381,16 @@ def start_static_learning(distances, paths, features, err_metric, save_path):
                 train, test = get_train_test_set(source_country, closest_countries, milestone, paths, features, sort_by='date',
                                                  remove_duplicate=False)
                 x_train, x_test, y_train, y_test = split_train_test(train, test)
-                models = initialize_static_models()  # new iteration fresh model
-                predictions = get_static_model_prediction(models, x_train, x_test, y_train)
+
+                total_batch_size = len(closest_countries) * lstm_params['batch_size_lstm']
+                lstm_params = split_train_val_lstm(train, x_test, total_batch_size, lstm_params)
+
+                models = initialize_static_models(lstm_params)  # new iteration new model
+
+                predictions = get_static_model_prediction(models, x_train, x_test, y_train, lstm_params)
+
                 score_df = get_scores(y_test, predictions, milestone)
+
                 combined_score_df.append(score_df)
 
             # all metric score for current source country
@@ -452,6 +505,9 @@ exp3_distance_path = parsed_yaml_file['paths']['exp3_distance_path']
 error_metrics = parsed_yaml_file['error_metrics']
 exp3_path = parsed_yaml_file['paths']['exp3_path']
 exp3_summary_path = parsed_yaml_file['paths']['exp3_summary_path']
+batch_size_lstm = parsed_yaml_file['batch_size_lstm']
+exp4_path = r"C:\Ankit\Personal\Github\Covid_Evolution_Using_Incremental_ML\results\running_results\content\Result\exp4"
+
 
 # Find distances among countries
 country_wise_distances = find_distance(exp3_distance_path, countries, distance_metrics, num_of_country=50)
@@ -465,8 +521,10 @@ top_selected_distances = select_top_n(sorted_distances, n=9)
 # a list of features to exclude from train and test
 features_to_select = {'start_column': 'cases_t-89', 'end_column': 'target', 'exclude_column': None}
 
-start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
+# static learning
+start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, batch_size_lstm, exp4_path)
 
-start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
+# incremental learning
+# start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
 
 

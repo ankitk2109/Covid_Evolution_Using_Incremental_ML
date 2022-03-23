@@ -10,6 +10,7 @@ distance_metrics:
 lag_days: 89
 num_country_plot: 50
 number_of_countries: 50
+batch_size_lstm: 10
 paths:
   bar_plot_path: ../results/running_results/content/Plots/barplot
   box_plot_path: ../results/running_results/content/Plots/boxplots
