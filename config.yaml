@@ -7,6 +7,7 @@ distance_metrics:
 - euclidean
 - cityblock
 - braycurtis
+- dtw
 lag_days: 89
 num_country_plot: 50
 number_of_countries: 50
@@ -29,9 +30,7 @@ paths:
   exp2_summary_path: ../results/running_results/content/Result/exp2/summary
   exp3_path: ../results/running_results/content/Result/exp3
   exp3_distance_path: ../results/final_result_files/exp3/distances.pkl
-  exp3_sorted_euclidean_path: ../results/final_result_files/exp3/sorted_dist_path_euclidean.pkl
-  exp3_sorted_cityblock_path: ../results/final_result_files/exp3/sorted_dist_path_cityblock.pkl
-  exp3_sorted_braycurtis_path: ../results/final_result_files/exp3/sorted_dist_path_braycurtis.pkl
+  exp3_sorted_path: ../results/final_result_files/exp3
   exp3_summary_path: ../results/running_results/content/Result/exp3/summary
 pretrain_days:
 - 30
