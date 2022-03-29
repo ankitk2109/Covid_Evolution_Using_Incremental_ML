@@ -11,6 +11,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 from src.utils import *
 
+# from dtw import dtw
+import rust_dtw  # using rust implementation of dtw as it is 10x faster
 from scipy.spatial.distance import cityblock
 from scipy.spatial.distance import euclidean
 from scipy.spatial.distance import braycurtis
@@ -67,7 +69,16 @@ def calc_distance(c1, c2, milestones, dist_metrics, country_dict):
         for m in milestones:
             lag_1 = df_c1.iloc[:m, 4:-1]
             lag_2 = df_c2.iloc[:m, 4:-1]
-            dist = eval(met + f"({list(lag_1.to_numpy().flatten())},{list(lag_2.to_numpy().flatten())})")
+            if met == 'dtw':
+                dist = rust_dtw.dtw(lag_1.to_numpy().flatten(), lag_2.to_numpy().flatten(), window=1, distance_mode="euclidean")
+            elif met == 'euclidean':
+                dist = euclidean(lag_1.to_numpy().reshape(-1, 1), lag_2.to_numpy().reshape(-1, 1))
+            elif met == 'cityblock':
+                dist = cityblock(lag_1.to_numpy().reshape(-1, 1), lag_2.to_numpy().reshape(-1, 1))
+            elif met == 'braycurtis':
+                dist = braycurtis(lag_1.to_numpy().reshape(-1, 1), lag_2.to_numpy().reshape(-1, 1))
+            else:
+                print(f"Metric \"{m}\" defined")
             distances.append(dist)
         distances.append(c2)
         country_dict[met].append(distances)
@@ -123,7 +134,7 @@ def find_distance(filepath, country_list, dist_metrics, num_of_country):
             distances = pickle.load(f)
     else:
         """
-        This would take around 30 minutes to run for all 50 countries
+        This would take around 60-90 minutes to run for all 50 countries
         """
         print(
             "File doesn't exists! computing distances... \ncaution: may take a while (approx 30 minutes for 50 countries)")
@@ -134,7 +145,8 @@ def find_distance(filepath, country_list, dist_metrics, num_of_country):
 
 
 def sort_by_milestone(milestones, country_distances, by_metric='euclidean'):
-    sorted_path = parsed_yaml_file['paths']["exp3_sorted_" + by_metric + "_path"]  # TODO: Remove hard coded path
+    filename = "sorted_dist_path_" + by_metric + ".pkl"
+    sorted_path = os.path.join(parsed_yaml_file['paths']['exp3_sorted_path'], filename)
     if not os.path.exists(sorted_path):
         print(f"{sorted_path} not found! sorting distances by {by_metric}")
         sorted_dict = {country: {m: [] for m in milestones} for country in country_distances}
@@ -240,7 +252,7 @@ def get_summary_table_countrywise(df_result_dict, err_metrics, static_learner=Tr
 
 
 def get_static_model_prediction(static_models, x_train, x_test, y_train, lstm_params):
-    static_predictions = {type(m).__name__ if type(m).__name__ is not 'Sequential' else 'LSTM': [] for m in static_models}
+    static_predictions = {type(m).__name__ if type(m).__name__ != 'Sequential' else 'LSTM': [] for m in static_models}
     for m in static_models:
         if type(m).__name__ == 'Sequential':  # LSTM == Sequential
             static_predictions['LSTM'], exec_time = train_test_lstm(m, lstm_params['x_train_lstm'],
@@ -487,7 +499,7 @@ def start_inc_learning(distances, paths, features, err_metric, save_path):
                                       file_paths]
             final_score[source_country] = pd.concat(combined_score_mean_df)
 
-    summary_table_countrywise_inc = get_summary_table_countrywise(final_score, ['MAPE'], static_learner=False)
+    summary_table_countrywise_inc = get_summary_table_countrywise(final_score, ['MAPE', 'MAE'], static_learner=False)
     save_summary_table(summary_table_countrywise_inc, exp3_summary_path, country=True, static_learner=False,
                        alternate_batch=False, transpose=True)
 
@@ -513,7 +525,7 @@ exp4_path = r"C:\Ankit\Personal\Github\Covid_Evolution_Using_Incremental_ML\resu
 country_wise_distances = find_distance(exp3_distance_path, countries, distance_metrics, num_of_country=50)
 
 # Sort the distances by metric
-sorted_distances = sort_by_milestone(pretrain_days, country_wise_distances, by_metric='euclidean')
+sorted_distances = sort_by_milestone(pretrain_days, country_wise_distances, by_metric='dtw')
 
 # For every source country select top n closest countries
 top_selected_distances = select_top_n(sorted_distances, n=9)
@@ -522,9 +534,9 @@ top_selected_distances = select_top_n(sorted_distances, n=9)
 features_to_select = {'start_column': 'cases_t-89', 'end_column': 'target', 'exclude_column': None}
 
 # static learning
-start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, batch_size_lstm, exp4_path)
+start_static_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, batch_size_lstm, exp3_path)
 
 # incremental learning
-# start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
+start_inc_learning(top_selected_distances, csv_processed_path, features_to_select, error_metrics, exp3_path)
 
 

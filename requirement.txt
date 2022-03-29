@@ -12,3 +12,4 @@ scikit-learn==0.24.0
 scikit-multiflow==0.5.3
 scipy==1.4.1
 seaborn==0.11.1
+rust_dtw == 0.1.14
