@@ -1,7 +1,6 @@
-# TODO: test this file
-
 # General Imports
 import pandas as pd
+
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 import yaml
 import seaborn as sns
@@ -10,6 +9,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 import warnings
 from pandas.core.common import SettingWithCopyWarning
+from src.utils import get_configs_yaml
+
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
 
@@ -43,12 +44,12 @@ def preprocess_data(df, metric_type, learner_type, col_mapper):
     return df_melt
 
 
-def order_by_median(df, reverse=False):
+def order_by_median(df, metric_type, reverse=False):
     grouped_df = df.groupby('Algorithms')
     algo_medians = {}
     for cur_group in grouped_df.groups.keys():
         df_cur_grp = grouped_df.get_group(cur_group)
-        algo_medians[cur_group] = df_cur_grp['MAPE'].median()
+        algo_medians[cur_group] = df_cur_grp[metric_type].median()
     sorted_algo_medians = dict(sorted(algo_medians.items(), key=lambda kv: kv[1], reverse=reverse))
     return list(sorted_algo_medians.keys())
 
@@ -61,7 +62,7 @@ def format_values(y_val, pos):
         return format(int(y_val))
 
 
-def draw_save_boxplot(df, hue_order_learner, save_filename, prequential=False):
+def draw_save_boxplot(df, metric_type, hue_order_learner, save_filename, prequential=False):
     if not prequential:
         colors = ['#1f77b4', '#2ca02c', '#ff7f0e', '#ca0020']
     else:
@@ -70,13 +71,13 @@ def draw_save_boxplot(df, hue_order_learner, save_filename, prequential=False):
     sns.set_palette(sns.color_palette(colors))
 
     plt.figure(figsize=(10, 6), dpi=90)
-    ordered_algo_list = order_by_median(df, reverse=False)
+    ordered_algo_list = order_by_median(df, metric_type, reverse=False)
 
     ax = sns.boxplot(x="Algorithms", y=metric_type, hue='Learner Type', data=df, order=ordered_algo_list, dodge=False,
                      width=0.5, hue_order=hue_order_learner)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     ax.set(yscale='log')
-    ax.set_ylim(top=1000)
+    ax.set_ylim(top=100000)
     ax.get_yaxis().set_major_formatter(
         matplotlib.ticker.FuncFormatter(format_values))  # lambda x, p: format(int(x), ',')
     ax.tick_params(axis='both', which='major', labelsize=16)
@@ -84,7 +85,7 @@ def draw_save_boxplot(df, hue_order_learner, save_filename, prequential=False):
     ax.legend(loc='upper left')
 
     plt.tight_layout()
-    plt.savefig(f'{box_plot_path}/{save_filename}.pdf')
+    plt.savefig(f'{box_plot_path}/{save_filename}_{metric_type}.pdf')
     plt.show()
 
 
@@ -109,13 +110,13 @@ def read_preprocess_plot_graph(filenames, col_mapper, save_filename, metric_type
     final_df.loc[final_df['Algorithms'] == 'LSTM', 'Learner Type'] = 'Sequential'
 
     # Sorting final dataframe
-    final_df = final_df.sort_values(by=['MAPE'])
+    final_df = final_df.sort_values(by=[metric_type])
 
     hue_order_learner = sorted(final_df['Learner Type'].unique())
 
     prequential_flag = 'Incremental(prequential)' in hue_order_learner
 
-    draw_save_boxplot(final_df, hue_order_learner, save_filename, prequential=prequential_flag)
+    draw_save_boxplot(final_df, metric_type, hue_order_learner, save_filename, prequential=prequential_flag)
 
 
 col_mapper = {'HT_Reg': 'Hoeffding Trees',
@@ -129,30 +130,40 @@ col_mapper = {'HT_Reg': 'Hoeffding Trees',
               'BayesianRidge': 'Bayesian Ridge'
               }
 
-metric_type = 'MAPE'
+metric_type = 'RMSE'
 
-yaml_file_path = "../config.yaml"
-with open(yaml_file_path, 'r') as yaml_file:
-    # yaml_file = open(yaml_file_path)
-    parsed_yaml_file = yaml.load(yaml_file, Loader=yaml.FullLoader)
+parsed_yaml_file = get_configs_yaml()
 
 box_plot_path = parsed_yaml_file['paths']['box_plot_path']
-exp1_path = parsed_yaml_file['paths']['exp1_path']
-exp2_path = parsed_yaml_file['paths']['exp2_path']
-# exp3_path = 'content/Result/exp3'
 
-exp1_filenames = glob.glob(f'{exp1_path}/*{metric_type}*.csv')
-exp2_filenames = glob.glob(f'{exp2_path}/*{metric_type}*.csv')
-# exp3_filenames = glob.glob(f'{exp3_path}/*{metric_type}*.csv')
+# add the files in running result for exp1 and exp2
+# exp1_path = parsed_yaml_file['paths']['exp1_path']
+# exp2_path = parsed_yaml_file['paths']['exp2_path']
+exp3_path = parsed_yaml_file['paths']['exp3_path']
 
-save_filename = 'fig1'
-read_preprocess_plot_graph(exp1_filenames, col_mapper, save_filename, metric_type)
 
-save_filename = 'fig2'
-read_preprocess_plot_graph(exp2_filenames, col_mapper, save_filename, metric_type)
+# exp1_filenames = glob.glob(f'{exp1_path}/*{metric_type}*.csv')
+# exp2_filenames = glob.glob(f'{exp2_path}/*{metric_type}*.csv')
+exp3_filenames = glob.glob(f'{exp3_path}/*{metric_type}*.csv')
 
-# exp3_filenames.append(exp2_filenames[1])
-# save_filename = 'fig3'
-# read_preprocess_plot_graph(exp3_filenames, col_mapper, save_filename, metric_type)
+# save_filename = 'fig1'
+# read_preprocess_plot_graph(exp1_filenames, col_mapper, save_filename, metric_type)
+#
+# save_filename = 'fig2'
+# read_preprocess_plot_graph(exp2_filenames, col_mapper, save_filename, metric_type)
+
+exp3_col_mapper = {'HT_Reg': 'Hoeffding Trees',
+                   'HAT_Reg': 'Hoeffding Adapt Tr',
+                   'ARF_Reg': 'Adaptive RF',
+                   'PA_Reg': 'Pass Agg Regr',
+                   'RandomForestRegressor': 'Random Forest',
+                   'GradientBoostingRegressor': 'Gradient Boosting',
+                   'DecisionTreeRegressor': 'Decision Trees',
+                   'LinearSVR': 'Linear SVR',
+                   'BayesianRidge': 'Bayesian Ridge'
+                   }
+
+save_filename = 'fig3'
+read_preprocess_plot_graph(exp3_filenames, exp3_col_mapper, save_filename, metric_type)
 
 print('Done')
