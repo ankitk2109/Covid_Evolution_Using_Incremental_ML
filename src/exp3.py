@@ -421,7 +421,7 @@ def start_static_learning(distances, paths, features, err_metric, batch_size_lst
             combined_score_mean_df = [pd.read_csv(filename, index_col='Unnamed: 0').transpose() for filename in file_paths]
             final_score[source_country] = pd.concat(combined_score_mean_df)
 
-    summary_table_countrywise_static = get_summary_table_countrywise(final_score, ['MAPE'], static_learner=True)
+    summary_table_countrywise_static = get_summary_table_countrywise(final_score, ['RMSE'], static_learner=True)
     save_summary_table(summary_table_countrywise_static, exp3_summary_path, country=True, static_learner=True,
                        alternate_batch=False, transpose=True)
 
@@ -499,7 +499,7 @@ def start_inc_learning(distances, paths, features, err_metric, save_path):
                                       file_paths]
             final_score[source_country] = pd.concat(combined_score_mean_df)
 
-    summary_table_countrywise_inc = get_summary_table_countrywise(final_score, ['MAPE', 'MAE'], static_learner=False)
+    summary_table_countrywise_inc = get_summary_table_countrywise(final_score, ['RMSE'], static_learner=False)
     save_summary_table(summary_table_countrywise_inc, exp3_summary_path, country=True, static_learner=False,
                        alternate_batch=False, transpose=True)
 
