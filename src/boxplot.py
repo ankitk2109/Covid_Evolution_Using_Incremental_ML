@@ -1,4 +1,5 @@
 # General Imports
+import numpy as np
 import pandas as pd
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
@@ -72,14 +73,19 @@ def draw_save_boxplot(df, metric_type, hue_order_learner, save_filename, prequen
 
     plt.figure(figsize=(10, 6), dpi=90)
     ordered_algo_list = order_by_median(df, metric_type, reverse=False)
+    bottom_ylim = int(df[metric_type].min())
+    top_ylim = int(df[metric_type].max())
+    start = len(str(bottom_ylim)) - 1
+    end = len(str(top_ylim)) + 1
 
     ax = sns.boxplot(x="Algorithms", y=metric_type, hue='Learner Type', data=df, order=ordered_algo_list, dodge=False,
                      width=0.5, hue_order=hue_order_learner)
     ax.set_xticklabels(ax.get_xticklabels(), rotation=90)
     ax.set(yscale='log')
-    ax.set_ylim(top=100000)
     ax.get_yaxis().set_major_formatter(
         matplotlib.ticker.FuncFormatter(format_values))  # lambda x, p: format(int(x), ',')
+    ax.set_yticks([10**i for i in range(start,end)])
+
     ax.tick_params(axis='both', which='major', labelsize=16)
     ax.set_ylabel(metric_type, fontsize=18)
     ax.legend(loc='upper left')
@@ -130,7 +136,7 @@ col_mapper = {'HT_Reg': 'Hoeffding Trees',
               'BayesianRidge': 'Bayesian Ridge'
               }
 
-metric_type = 'RMSE'
+metric_type = 'MAE'
 
 parsed_yaml_file = get_configs_yaml()
 
