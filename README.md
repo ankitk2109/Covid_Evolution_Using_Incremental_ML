@@ -1,5 +1,5 @@
 # Applying Dynamic Time Warping for boosting the performance of Static and Incremental Machine Learning in Forecasting COVID-19 Cases
-Modelling the COVID-19 virus evolution using incremental machine learning methods
+Modelling the COVID-19 virus evolution using staic and incremental machine learning methods with and without similarity(DTW, ED).
 
 
 
