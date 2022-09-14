@@ -113,40 +113,52 @@ def get_metric_with_mean(result: pd.DataFrame, error_metric: str) -> pd.DataFram
 
 def get_predictions(df_arima_country):
     # save scores for all countries
-    all_pday_scores = []
+    all_milestone_scores = []
 
-    for p_days in PRETRAIN_DAYS:
-        # get train and test set
-        training_size = p_days + DEFAULT_SIZE
-        train = df_arima_country.iloc[0:training_size]  # separate training size
-        test = df_arima_country.iloc[training_size: training_size + TEST_SIZE]  # [90, 120]
+    for milestone in PRETRAIN_DAYS:
+        # get train set
+        train_start = 0
+        train_end = milestone + DEFAULT_SIZE
+        train = df_arima_country.iloc[train_start:train_end]  # separate training size
+
+        # get test set
+        test_start = train_end + SKIP_DAYS
+        test_end = test_start + TEST_SIZE
+        test = df_arima_country.iloc[test_start: test_end]
 
         # # plot the train test cases on graph
         # plot_cases(train, test)
 
-        # train the arima model
+        # get order for arima
         order = get_arima_order(train['cases'])
-        cur_pday_predictions = []
-        for window_start in range(len(test)):
-            window_end = window_start + training_size
+
+        milestone_predictions = []
+        for window_start in range(TEST_SIZE):
+            window_end = window_start + train_end
             x_train = df_arima_country.iloc[window_start: window_end]['cases']
+
             model = ARIMA(order=order)
             model_fit = model.fit(x_train)
-            prediction, _ = model_fit.predict(n_periods=DAYS_TO_FORECAST, return_conf_int=True)
+
+            prediction, _ = model_fit.predict(n_periods=FORECAST_DAYS, return_conf_int=True)
             average = prediction[-DAYS_TO_AVG:].mean()
-            cur_pday_predictions.append(average)
+            milestone_predictions.append(average)
 
             # plot the predictions on graph
             # plot_prediction(prediction, df_cf, test, train, p_days)
 
+        # test and prediction length should be same
+        if len(test) < len(milestone_predictions):
+            milestone_predictions = milestone_predictions[0:len(test)]
+
         # prediction dictionary
-        model_predictions = {'ARIMA': prediction.values}
-        cur_pday_scores = get_scores(flatten(test.values.tolist()), model_predictions, p_days)
-        all_pday_scores.append(cur_pday_scores)
+        model_predictions = {'ARIMA': milestone_predictions}
+        cur_milestone_scores = get_scores(test['Target'].values.tolist(), model_predictions, milestone)
+        all_milestone_scores.append(cur_milestone_scores)
 
     # convert frames to dataframe
     # country_metric[valid_country] = pd.concat(all_pday_scores)
-    df_score = pd.concat(all_pday_scores)
+    df_score = pd.concat(all_milestone_scores)
     return df_score
 
 
@@ -190,10 +202,11 @@ def train_predict_save(df, save_path):
 parsed_yaml_file = get_configs_yaml()
 PRETRAIN_DAYS = parsed_yaml_file['pretrain_days']
 COUNTRIES = parsed_yaml_file['valid_countries']
-TEST_SIZE = 30
+SKIP_DAYS = 30
 DEFAULT_SIZE = 50
 DAYS_TO_AVG = 10
-DAYS_TO_FORECAST = 40
+FORECAST_DAYS = 40
+TEST_SIZE = 30
 
 exp1_inc_united_df_path = parsed_yaml_file['paths']['exp1_inc_united_df_path']
 csv_processed_path = parsed_yaml_file['paths']['csv_processed_path']
