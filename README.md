@@ -2,6 +2,7 @@
 Modelling the COVID-19 virus evolution using staic and incremental machine learning methods with and without similarity(DTW, ED).
 
 
+Link to the published paper: https://doi.org/10.1111/exsy.13237
 
 ## Experiments
 
